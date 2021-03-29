@@ -78,7 +78,7 @@ class AppModel {
   }
 
   Future<Map> loginUser(String username, String password, function, function2,
-      function3) async {
+      function3,noAccessFunction) async {
     print("THIS IS THE LOGIN FUNCTION START POINT");
 
     try {
@@ -86,6 +86,7 @@ class AppModel {
       var dataSent = {
         "username": username,
         "password": password,
+        "scope": "supplier"
       };
 
       print("This is the data sent.................." + dataSent.toString());
@@ -94,22 +95,29 @@ class AppModel {
           options: Options(headers: {'Authorization': "$basicAuth",},));
       SharedPreferences prefs = await SharedPreferences.getInstance();
       print(response.statusCode);
-      if (response.statusCode == 200) {
-        function();
-      }
-      if (response.data['message'] ==
-          "No user found with provided username") {
-        function2();
-      } else if (response.data['message'] == "Wrong password") {
-        function2();
-      } else {
-        prefs.setString(
-            "correlationId", response.data["correlationId"].toString());
-        print("................" + prefs.getString("correlationId"));
-        function();
+      if(response.statusCode!=400){
+        if (response.statusCode == 202) {
+          function();
+        }
+        if (response.data['message'] ==
+            "No user found with provided username") {
+          function2();
+        }
+        else if (response.data['message'] == "Wrong password") {
+          function2();
+        }
+        else {
+          prefs.setString(
+              "correlationId", response.data["correlationId"].toString());
+          print("................" + prefs.getString("correlationId"));
+          function();
+        }
+
+        print(response.data.toString());
+      }else{
+       noAccessFunction();
       }
 
-      print(response.data.toString());
       return response.data;
     } catch (exception) {
       print(exception);
@@ -123,7 +131,7 @@ class AppModel {
   }
 
   Future<Map> verifyOtp(String correlationId, String otpCode, function,
-      function2, function3,function400) async {
+      function2, function3,function400,changePasswordfunction) async {
     print("THIS IS THE OTP VERIFICATION FUNCTION START POINT");
 
     try {
@@ -139,10 +147,15 @@ class AppModel {
           options: Options(headers: {'Authorization': "$basicAuth",},));
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
+      print(response.statusCode);
 
       if (response.statusCode == 200) {
 
         function();
+        print(response.toString());
+      }
+      if(response.statusCode==410){
+        changePasswordfunction();
         print(response.toString());
       }
       if(response.statusCode==400){
@@ -197,7 +210,7 @@ class AppModel {
       print(resp.statusMessage);
       if (resp.statusCode == 200) {
 
-        print(resp.data.toString());
+        print("IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII"+resp.data.toString());
 
         prefs.setString("PIN", resp.data['data']["vatNo"]);
         print("THIS IS THE PIN......." + prefs.getString("PIN"));
@@ -234,11 +247,18 @@ class AppModel {
     } catch (exception) {
       function();
       print("..............."+exception.toString());
-      return {
-        'code': 500,
-        'message':
-        'An error occured when performing your request, please try again'
-      };
+      if(exception.toString()=="Invalid argument(s)"){
+        return {
+          'message':
+          'An error occur, please check your VAT number and try again'
+        };
+      }else{
+        return {
+          'code': 500,
+          'message':
+          'An error occur, please check your internet connection and try again'
+        };
+      }
     }
   }
 
@@ -278,7 +298,7 @@ class AppModel {
           "id": prefs.getString('devicesID')
         },
         "simCard": {
-          "id": prefs.getString('simCardID')
+          "id": prefs.getString('SimCardID')
         },
         "taxRegion": {
           "id": valueFromDrop
@@ -352,7 +372,7 @@ class AppModel {
   }
 
   Future<Map<String, dynamic>> getDeviceSerialNo(String value, function,
-      Succesfulfunction,String property) async {
+      Succesfulfunction,String property,inactiveFun) async {
     try {
       Map<String,dynamic>data={
         "conditions": [
@@ -390,10 +410,16 @@ class AppModel {
         //var list=json.decode(results);
         //print(list);
         Data data= Data.fromJson(results[0]);
-        prefs.setString("devicesID", data.id);
-        print(data.id);
+        if(data.status=="INACTIVE"){
+          prefs.setString("devicesID", data.id);
+          print(data.id);
 
-        Succesfulfunction();
+          Succesfulfunction();
+        }else{
+          inactiveFun();
+        }
+
+
       }
       if(resp.statusCode==409){
         function();
@@ -443,8 +469,9 @@ class AppModel {
         //var list=json.decode(results);
         //print(list);
         Data data= Data.fromJson(results[0]);
-        prefs.setString("simCardID", data.id);
+        prefs.setString("SimCardID", data.id);
         print(data.id);
+        print("THisi ====is from the sharepref "+prefs.getString('SimCardID'));
 
         Succesfulfunction();
       }
@@ -479,7 +506,7 @@ class AppModel {
       var encodeQueryComponent = paramName+'='+Uri.encodeComponent(json.encode(dataSent));
       print(encodeQueryComponent.toString());
 
-      String uri = "/entities/miliki_SimCard/search?$encodeQueryComponent";
+      String uri = "/entities/miliki_Device/search?$encodeQueryComponent";
       SharedPreferences prefs = await SharedPreferences.getInstance();
       BeareaToke = prefs.getString("access_token");
       Response resp = await dio.get(uri, options: Options(
@@ -491,7 +518,7 @@ class AppModel {
       if (resp.statusCode == 200) {
 
         print(resp.data);
-        getDeviceSerialNo(value,function,Succesfulfunction,property);
+        /*getDeviceSerialNo(value,function,Succesfulfunction,property);*/
         print(resp.data is String);
 
         var results=resp.data;
@@ -543,20 +570,18 @@ class AppModel {
       print(resp.statusCode);
       print(resp.statusMessage);
 
-      if (resp.statusCode == 200) {
+      if (resp.statusCode == 200&&resp.data[0]!=null) {
+          print(resp.data);
+          getSimCards(value,function,Succesfulfunction,property);
+          print(resp.data is String);
 
-        print(resp.data);
-        getSimCards(value,function,Succesfulfunction,property);
-        print(resp.data is String);
-
-        var results=resp.data;
-        //var list=json.decode(results);
-        //print(list);
-        Data data= Data.fromJson(results[0]);
-        prefs.setString("simCardID", data.id);
-        print(data.id);
-
-        Succesfulfunction();
+          var results=resp.data;
+          //var list=json.decode(results);
+          //print(list);
+          Data data= Data.fromJson(results[0]);
+          prefs.setString("simCardID", data.id);
+          print(data.id+"HIII IN IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII");
+          Succesfulfunction();
       }
       if(resp.statusCode==409){
         function();
@@ -861,4 +886,69 @@ class AppModel {
 
   }
 
+  Future<Map> changePassword(String oldPassword, String newPassword, function,
+      function2, function3,function400) async {
+    print("THIS IS THE OTP VERIFICATION FUNCTION START POINT");
+
+    try {
+      String uri = "/services/miliki_ChangePasswordService/changePassword";
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      BeareaToke = prefs.getString("access_token");
+      var dataSent =  {
+        "changePasswordWrapper": {
+          "oldPass": oldPassword,
+          "newPassword": newPassword
+        }
+      };
+      print("This is the data sent.................." + dataSent.toString());
+
+      Response response = await dio.post(uri, data: dataSent,
+          options: Options(
+            headers: {'Authorization': " Bearer $BeareaToke",},));
+
+      if (response.statusCode == 200) {
+        function();
+        print(response.toString());
+      }
+      if(response.statusCode==400){
+        function400();
+      }
+      print(response.toString());
+    } catch (exception) {
+      function3();
+      print(exception);
+    }
+  }
+
+  Future<Map> ForgotPassword(String email,function,
+      function3,function400) async {
+    print("THIS IS THE FORGOT PASSWORD FUNCTION START POINT");
+
+    try {
+      String uri = "/forgot/password";
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      BeareaToke = prefs.getString("access_token");
+      var dataSent = {
+        "username": email
+      }
+      ;
+      print("This is the data sent.................." + dataSent.toString());
+
+      Response response = await dio.post(uri, data: dataSent);
+
+      print(response.statusCode);
+      print(response.statusMessage);
+      if (response.statusCode == 200) {
+        function();
+        print(response.toString());
+      }else if (response.statusCode == 404) {
+        function400();
+        print(response.toString());
+      }
+      print(response.toString());
+    } catch (exception) {
+      function3();
+      print(exception);
+    }
+  }
 }

@@ -253,6 +253,13 @@ class _LoginPageState extends State<LoginPage> {
 
                                     });
                                     _skip();
+                                  },(){
+                                    setState(() {
+                                      _currentView = false;
+                                      isNotLogin = "false";
+                                      errorState=true;
+                                    });
+                                    _skip();
                                   });
                                   setState(() {
                                     errorValue=response["message"];
@@ -290,8 +297,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         onTap: () async {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                              "/ForgotPassword", (route) => false);
+                          Navigator.pushNamed(context, '/ForgotPassword');
                         },
                       ),
                     ],

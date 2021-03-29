@@ -164,6 +164,7 @@ class _TaxpayerOnboarding extends State<TaxpayerOnboarding> {
                                                   physicalAddress="";
                                                   location="";
                                                   taxRegion="";
+                                                  errorValue='Check the VAT Number and try again';
                                                 });
                                                 _skip();
                                               }, ()async{

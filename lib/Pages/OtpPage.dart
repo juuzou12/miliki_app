@@ -7,7 +7,8 @@ import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'dart:async';
-
+import 'package:fluttertoast/fluttertoast.dart';
+import 'Dashboard.dart';
 class OtpPage extends StatefulWidget{
   @override
   State<StatefulWidget> createState() {
@@ -328,7 +329,7 @@ class _OtpPageState extends State<OtpPage> {
           setState(() {
             _currentView=false;
           });
-          Navigator.pushNamedAndRemoveUntil(context, "/ChangePassword", (route) => false);
+          getUsername();
           _skip();
         },(){
           setState(() {
@@ -354,6 +355,8 @@ class _OtpPageState extends State<OtpPage> {
             errorValue="Check the OTP you have provided it is an invalid otp";
           });
           _skip();
+        },(){
+          Navigator.pushNamedAndRemoveUntil(context, "/ChangePassword", (route) => false);
         });
 
       }else{
@@ -390,7 +393,29 @@ class _OtpPageState extends State<OtpPage> {
       currentPIN = currentPIN.substring(0, currentPIN.length- 1);
     });
   }
+  void getUsername()async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final response = await getIt<AppModel>().userInfo((){
+      setState(() {
+        _currentView=false;
+      });
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>
+          Dashboard(name: prefs.getString("_entityName"))), (Route<dynamic> route) => false);
+    },(){
+      setState(() {
+        _currentView=false;
+      });
+      Fluttertoast.showToast(
+          msg: "Try again an error occured (Timeout)",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.SNACKBAR,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          fontSize: 16.0);
 
+    });
+  }
   void _skip()async{
     final timer=Timer(Duration(seconds:3 ), ()async{
       setState(() {

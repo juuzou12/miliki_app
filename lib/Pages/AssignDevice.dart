@@ -10,6 +10,7 @@ import '../main.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'dart:async';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AssignDevice extends StatefulWidget{
   final String taxpayerId,TaxpayerName,vatNo,tin,phone,email,physicalAddress,location,taxRegion,serialNo,simCard;
@@ -26,7 +27,7 @@ class AssignDevice extends StatefulWidget{
 
 class _AssignDeviceState extends State<AssignDevice> {
   final _formKey = GlobalKey<FormBuilderState>();
-  var value=true;
+  var value=false;
   var contact=false;
   var _currentView = true;
   List<dynamic> dataFromServer = [];
@@ -196,16 +197,12 @@ class _AssignDeviceState extends State<AssignDevice> {
                                 ),
                                 onTap: ()async{
                                   if(_formKey.currentState.saveAndValidate()){
-                                    currentFocus = FocusScope.of(context);
 
-                                    if (!currentFocus.hasPrimaryFocus) {
-                                      currentFocus.unfocus();
-                                    }
                                     setState(() {
                                       _currentView=true;
                                     });
 
-                                    final response = await getIt<AppModel>().getDeviceState(_formKey.currentState.value['devices_serial'],(){
+                                    final response = await getIt<AppModel>().getDeviceSerialNo(_formKey.currentState.value['devices_serial'],(){
                                       setState(() {
                                         _currentView=false;
                                       });
@@ -221,7 +218,16 @@ class _AssignDeviceState extends State<AssignDevice> {
                                           backgroundColor: Colors.black,
                                           textColor: Colors.white,
                                           fontSize: 16.0);
-                                    },"serialNumber");
+                                    },"serialNumber",(){
+                                      Fluttertoast.showToast(
+                                          msg: "Device is already exists",
+                                          toastLength: Toast.LENGTH_SHORT,
+                                          gravity: ToastGravity.SNACKBAR,
+                                          timeInSecForIosWeb: 1,
+                                          backgroundColor: Colors.black,
+                                          textColor: Colors.white,
+                                          fontSize: 16.0);
+                                    });
 
                                   }
                                 },
@@ -302,7 +308,7 @@ class _AssignDeviceState extends State<AssignDevice> {
                                     onTap: ()async{
                                       if(_formKey.currentState.saveAndValidate()){
                                         currentFocus = FocusScope.of(context);
-
+                                        SharedPreferences prefs = await SharedPreferences.getInstance();
                                         if (!currentFocus.hasPrimaryFocus) {
                                           currentFocus.unfocus();
                                         }
@@ -310,11 +316,9 @@ class _AssignDeviceState extends State<AssignDevice> {
                                           _currentView=true;
                                         });
 
-                                        final response = await getIt<AppModel>().getSimCardState(_formKey.currentState.value['sim_card'],(){
+                                        final response = await getIt<AppModel>().getSimCards(_formKey.currentState.value['sim_card'],(){
                                           setState(() {
                                             _currentView=false;
-                                            errorState=true;
-                                            errorValue="Conflict! It seems the device serial number you are assigning has been assigned already";
                                           });
                                           _skip();
                                         }, (){
@@ -331,6 +335,7 @@ class _AssignDeviceState extends State<AssignDevice> {
                                               backgroundColor: Colors.black,
                                               textColor: Colors.white,
                                               fontSize: 16.0);
+                                          prefs.setString('simCardID', null);
                                         },"imsi");
                                       }
                                     },
@@ -441,11 +446,6 @@ class _AssignDeviceState extends State<AssignDevice> {
                           text: "Proceed",
                           onTap: () async {
                             if(_formKey.currentState.saveAndValidate()){
-                              currentFocus = FocusScope.of(context);
-
-                              if (!currentFocus.hasPrimaryFocus) {
-                                currentFocus.unfocus();
-                              }
                               setState(() {
                                 contact=true;
                               });
@@ -505,7 +505,9 @@ class _AssignDeviceState extends State<AssignDevice> {
                                           style: GoogleFonts.getFont("Poppins",
                                               color: Colors.black,
                                               fontSize: ScreenUtil().setSp(14)),
-
+                                          validators: [
+                                            FormBuilderValidators.required(errorText: 'This field is required')
+                                          ],
                                           keyboardType: TextInputType.text,
                                           decoration: InputDecoration(
                                               border: InputBorder.none,
@@ -573,6 +575,10 @@ class _AssignDeviceState extends State<AssignDevice> {
                                               fontSize: ScreenUtil().setSp(14)),
 
                                           keyboardType: TextInputType.phone,
+                                          maxLength: 10,
+                                          validators: [
+                                          FormBuilderValidators.required(errorText: 'This field is required')
+                                          ],
                                           decoration: InputDecoration(
                                               border: InputBorder.none,
                                               hintText: "0700155686",
@@ -637,7 +643,8 @@ class _AssignDeviceState extends State<AssignDevice> {
                                               color: Colors.black,
                                               fontSize: ScreenUtil().setSp(14)),
                                           validators: [
-                                            FormBuilderValidators.email(errorText: "Invalid email")
+                                            FormBuilderValidators.email(errorText: "Invalid email"),
+                                            FormBuilderValidators.required(errorText: 'This field is required')
                                           ],
                                           keyboardType: TextInputType.emailAddress,
                                           decoration: InputDecoration(
@@ -698,18 +705,14 @@ class _AssignDeviceState extends State<AssignDevice> {
                           onTap: () async {
                              /*confirmationBox("","Are you sure you want to submit this taxpayer?");*/
                             if(_formKey.currentState.saveAndValidate()){
+                              SharedPreferences prefs = await SharedPreferences.getInstance();
                               setState(() {
                                 _currentView=true;
                               });
-                              currentFocus = FocusScope.of(context);
-
-                              if (!currentFocus.hasPrimaryFocus) {
-                                currentFocus.unfocus();
-                              }
                               final response = await getIt<AppModel>().onboardTaxpayer(widget.taxpayerId,widget.tin,widget.vatNo,
                                   widget.TaxpayerName,widget.phone,widget.email,"website",widget.physicalAddress,
                                   widget.location,widget.taxRegion,'fullname',
-                                  'fullname','fullname',_formKey.currentState.value['region'],
+                                  'fullname','fullname',prefs.getString("taxRegionID"),
                                       (){
                                     setState(() {
                                       _currentView=false;

@@ -8,7 +8,7 @@ import 'dart:async';
 import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
-
+import 'package:fluttertoast/fluttertoast.dart';
 import 'Dashboard.dart';
 
 class ChangePassword extends StatefulWidget {
@@ -24,6 +24,7 @@ class _ChangePasswordState extends State<ChangePassword> {
 
   var errorState=false;
   var _currentView = false;
+  var obscureText = true;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,8 +74,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                       ),
                     ),
                     onTap: () {
-                      Navigator.pushNamedAndRemoveUntil(
-                          context, "/LoginPage", (route) => false);
+                     Navigator.pop(context);
                     },
                   )
                 ],
@@ -134,8 +134,24 @@ class _ChangePasswordState extends State<ChangePassword> {
                                 FormBuilderValidators.required()
                               ],
                               keyboardType: TextInputType.text,
+                                obscureText:obscureText,
                               decoration: InputDecoration(
                                   border: InputBorder.none,
+                                  suffixIcon: obscureText==true?IconButton(
+                                    icon: Icon(Icons.visibility),
+                                    onPressed: (){
+                                      setState(() {
+                                        obscureText=false;
+                                      });
+                                    },
+                                  ):IconButton(
+                                    icon: Icon(Icons.visibility_off),
+                                    onPressed: (){
+                                      setState(() {
+                                        obscureText=true;
+                                      });
+                                    },
+                                  ),
                                   hintText: "Enter Old Password",
                                   hintStyle: GoogleFonts.getFont("Poppins",
                                       color: Color(0xffFFFFFF),
@@ -164,7 +180,23 @@ class _ChangePasswordState extends State<ChangePassword> {
                                 FormBuilderValidators.required()
                               ],
                               keyboardType: TextInputType.text,
+                                obscureText:obscureText,
                               decoration: InputDecoration(
+                                  suffixIcon: obscureText==true?IconButton(
+                                    icon: Icon(Icons.visibility),
+                                    onPressed: (){
+                                      setState(() {
+                                        obscureText=false;
+                                      });
+                                    },
+                                  ):IconButton(
+                                    icon: Icon(Icons.visibility_off),
+                                    onPressed: (){
+                                      setState(() {
+                                        obscureText=true;
+                                      });
+                                    },
+                                  ),
                                   border: InputBorder.none,
                                   hintText: "Enter New Password",
                                   hintStyle: GoogleFonts.getFont("Poppins",
@@ -187,6 +219,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                             padding: const EdgeInsets.only(left:10.0,top: 5.0),
                             child: FormBuilderTextField(
                               attribute: "confirm",
+                              obscureText: obscureText,
                               style:  GoogleFonts.getFont("Poppins",
                                   color: Color(0xffFFFFFF),
                                   fontSize: ScreenUtil().setSp(14)),
@@ -195,6 +228,21 @@ class _ChangePasswordState extends State<ChangePassword> {
                               ],
                               keyboardType: TextInputType.text,
                               decoration: InputDecoration(
+                                  suffixIcon: obscureText==true?IconButton(
+                                    icon: Icon(Icons.visibility),
+                                    onPressed: (){
+                                      setState(() {
+                                        obscureText=false;
+                                      });
+                                    },
+                                  ):IconButton(
+                                    icon: Icon(Icons.visibility_off),
+                                    onPressed: (){
+                                      setState(() {
+                                        obscureText=true;
+                                      });
+                                    },
+                                  ),
                                   border: InputBorder.none,
                                   hintText: "Confirm New Password",
                                   hintStyle: GoogleFonts.getFont("Poppins",
@@ -219,7 +267,22 @@ class _ChangePasswordState extends State<ChangePassword> {
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: MainButton(text: "Change",onTap: (){
-                  getUserName();
+                  if(_formKey.currentState.saveAndValidate()){
+                    if(_formKey.currentState.value['new']==_formKey.currentState.value['confirm']){
+                      getUserName();
+                    }else{
+                      Fluttertoast.showToast(
+                          msg: "Make sure both new and confirm password match",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.CENTER,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.black,
+                          textColor: Colors.white,
+                          fontSize: 16.0);
+                    }
+
+                  }
+
                 },color: Colors.red,width: 327,textColor: Colors.white),
               ),
             ],
@@ -238,20 +301,65 @@ class _ChangePasswordState extends State<ChangePassword> {
   }
 
   void getUserName()async{
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+
     setState(() {
       _currentView=true;
     });
-    final response = await getIt<AppModel>().userInfo((){
-      setState(() {
-        _currentView=false;
-      });
-      Navigator.push<String>(context,
-          MaterialPageRoute(builder: (context) => Dashboard(name: prefs.getString("_entityName"),)));
+    final resp= await getIt<AppModel>().changePassword(_formKey.currentState.value['old'],_formKey.currentState.value['new'],(){
+      changePassword();
+
     },(){
       setState(() {
         _currentView=false;
       });
+    },(){
+      Fluttertoast.showToast(
+          msg: "Try again an error occured (Timeout)",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      setState(() {
+        _currentView=false;
+      });
+    },(){
+      Fluttertoast.showToast(
+          msg: "Wrong Old password, re-check and try again",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.SNACKBAR,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      setState(() {
+        _currentView=false;
+      });
+    });
+
+  }
+  void changePassword()async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final response = await getIt<AppModel>().userInfo((){
+      setState(() {
+        _currentView=false;
+      });
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>
+          Dashboard(name: prefs.getString("_entityName"))), (Route<dynamic> route) => false);
+    },(){
+      setState(() {
+        _currentView=false;
+      });
+      Fluttertoast.showToast(
+          msg: "Try again an error occured (Timeout)",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.SNACKBAR,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          fontSize: 16.0);
+
     });
   }
 }

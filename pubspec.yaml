@@ -66,6 +66,9 @@ flutter:
     - assets/Images/Milikipattern.png
     - assets/Images/galdem.png
     - assets/Images/Milikitechnician.png
+    - assets/Images/update_profile.png
+    - assets/Images/exit.png
+    - assets/Images/changepass.png
     - assets/Images/scan_whie.png
     - assets/Images/loadin_as.jpg
 

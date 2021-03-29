@@ -6,7 +6,7 @@ import 'package:miliki_app/Sections/HomepageMiddlePart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import 'dart:async';
-
+import 'package:miliki_app/Widgets/PopupMenu.dart';
 import 'package:dio/dio.dart';
 class HomePage extends StatefulWidget {
   final String name;
@@ -71,22 +71,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         onTap: () {
-                          PopupMenuButton(
-                            key: _menuKey,
-                            itemBuilder: (_)=><PopupMenuItem<String>>[
-                              new PopupMenuItem<String>(
-                                child: Row(
-                                  children: [
-                                    Text('Update Profile',
-                                    style: GoogleFonts.getFont("Poppins",
-                                        color: Color(0xff3598DC),
-                                        fontWeight: FontWeight.w200,
-                                        fontSize: ScreenUtil().setSp(16)),),
-                                  ],
-                                ),
-                              )
-                            ],
-                          );
+                          setState(() {
+                            showOption=true;
+                          });
                         },
                       )
                     ],
@@ -180,6 +167,28 @@ class _HomePageState extends State<HomePage> {
             )
           ],
         ),
+        showOption==true?InkWell(
+          child: Container(
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
+            child: Column(
+              children: [
+                SizedBox(height: ScreenUtil().setHeight(70),),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    PopupMenu(),
+                  ],
+                )
+              ],
+            ),
+          ),
+          onTap: (){
+            setState(() {
+              showOption=false;
+            });
+          },
+        ):SizedBox()
       ],
     );
   }
